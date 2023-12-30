@@ -1,4 +1,4 @@
-package md.cernev.minimemo.configuration;
+package md.cernev.minimemo.configuration.security;
 
 import md.cernev.minimemo.dto.ErrorDto;
 import org.springframework.http.server.reactive.ServerHttpResponse;

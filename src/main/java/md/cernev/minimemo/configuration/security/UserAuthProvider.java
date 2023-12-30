@@ -1,13 +1,16 @@
-package md.cernev.minimemo.configuration;
+package md.cernev.minimemo.configuration.security;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import md.cernev.minimemo.service.UserService;
+import md.cernev.minimemo.util.CustomException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -35,12 +38,26 @@ public class UserAuthProvider {
     }
 
     public Mono<Authentication> validateToken(String token) {
+        try {
+            DecodedJWT decodedJWT = getDecodedJWT(token);
+
+            return userService.findByLogin(decodedJWT.getIssuer())
+                .map(userDto -> new UsernamePasswordAuthenticationToken(userDto, null, Collections.emptyList()));
+        } catch (IllegalArgumentException e) {
+            return Mono.error(new CustomException(e.getMessage(), HttpStatus.BAD_REQUEST));
+        } catch (JWTVerificationException e) {
+            return Mono.error(new CustomException(e.getMessage(), HttpStatus.UNAUTHORIZED));
+        }
+    }
+
+    public DecodedJWT getDecodedJWT(String token) {
         JWTVerifier verifier = JWT.require(Algorithm.HMAC256(secretKey))
             .build();
-        DecodedJWT decodedJWT = verifier.verify(token);
+        return verifier.verify(token);
+    }
 
-        return userService.findByLogin(decodedJWT.getIssuer())
-            .map(userDto -> new UsernamePasswordAuthenticationToken(userDto, null, Collections.emptyList()));
+    public String getIssuer(String token) {
+        return getDecodedJWT(token.split(" ")[1]).getIssuer();
     }
 
     @PostConstruct

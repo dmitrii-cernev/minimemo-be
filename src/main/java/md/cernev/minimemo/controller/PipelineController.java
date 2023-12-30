@@ -1,18 +1,21 @@
 package md.cernev.minimemo.controller;
 
+import lombok.RequiredArgsConstructor;
+import md.cernev.minimemo.configuration.security.UserAuthProvider;
 import md.cernev.minimemo.service.PipelineService;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 @RestController
-@CrossOrigin("http://localhost:5173")
+@RequestMapping("/api/auth")
+@RequiredArgsConstructor
 public class PipelineController {
   private final PipelineService pipelineService;
-
-  public PipelineController(PipelineService pipelineService) {this.pipelineService = pipelineService;}
+  private final UserAuthProvider userAuthProvider;
 
   @PostMapping("/process")
-  public Mono<String> startProcess(@RequestParam String url, @RequestParam String userId) {
+  public Mono<String> startProcess(@RequestHeader(name = "Authorization") String token, @RequestParam String url) {
+    String userId = userAuthProvider.getIssuer(token);
     return pipelineService.startPipeline(url, userId);
   }
   @GetMapping("/video/{videoId}")
@@ -20,8 +23,9 @@ public class PipelineController {
     return pipelineService.getVideoInfo(videoId);
   }
 
-  @GetMapping("/videos/{userId}")
-  public Mono<Object> getVideos(@PathVariable String userId) {
+  @GetMapping("/videos")
+  public Mono<Object> getVideos(@RequestHeader(name = "Authorization") String token) {
+    String userId = userAuthProvider.getIssuer(token);
     return pipelineService.getVideos(userId);
   }
 

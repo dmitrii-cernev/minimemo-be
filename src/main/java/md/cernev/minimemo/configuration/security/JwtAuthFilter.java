@@ -1,5 +1,6 @@
-package md.cernev.minimemo.configuration;
+package md.cernev.minimemo.configuration.security;
 
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -16,7 +17,7 @@ public class JwtAuthFilter implements WebFilter {
     private final UserAuthProvider userAuthProvider;
 
     @Override
-    public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+    public Mono<Void> filter(ServerWebExchange exchange, @NonNull WebFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
         List<String> authHeaders = request.getHeaders().getOrEmpty(HttpHeaders.AUTHORIZATION);
 
