@@ -31,6 +31,7 @@ public class PipelineService {
   public Mono<String> startPipeline(String url, String userId) {
     Platform platform = getPlatform(url);
     logger.info("Starting pipeline for url: {}", url);
+    //todo: this method is blocking
     String videoId = UUID.randomUUID().toString();
     Mono<PutItemResponse> putItem = Mono.fromFuture(() -> miniMemoRepository.putItem(userId, videoId, url, platform));
     Mono<String> summary = getSummary(url, platform, videoId);
