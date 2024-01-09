@@ -6,11 +6,11 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 @RequiredArgsConstructor
-public class CustomException extends RuntimeException {
+public class CustomHttpException extends RuntimeException {
 
     private final HttpStatus status;
 
-    public CustomException(String message, HttpStatus status) {
+    public CustomHttpException(String message, HttpStatus status) {
         super(message);
         this.status = status;
     }

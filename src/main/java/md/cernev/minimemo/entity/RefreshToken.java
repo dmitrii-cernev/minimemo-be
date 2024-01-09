@@ -1,19 +1,18 @@
-package md.cernev.minimemo.dto;
+package md.cernev.minimemo.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Data
-public class UserDto {
+public class RefreshToken {
     private String id;
-    private String firstName;
-    private String lastName;
-    private String login;
-    private String token;
+    private String type;
+    private String userLogin;
     private String refreshToken;
+    private String expiration;
 }

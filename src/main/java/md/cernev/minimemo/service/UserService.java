@@ -7,7 +7,7 @@ import md.cernev.minimemo.dto.UserDto;
 import md.cernev.minimemo.entity.User;
 import md.cernev.minimemo.mapper.UserMapper;
 import md.cernev.minimemo.repository.UserRepository;
-import md.cernev.minimemo.util.CustomException;
+import md.cernev.minimemo.util.CustomHttpException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,7 +29,7 @@ public class UserService {
         Mono<Optional<User>> userMono = Mono.fromFuture(userRepository.findByLogin(login));
         return userMono.map(optionalUser -> optionalUser
             .map(userMapper::toUserDto)
-            .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND)));
+            .orElseThrow(() -> new CustomHttpException("User not found", HttpStatus.NOT_FOUND)));
     }
 
     public Mono<UserDto> login(CredentialsDto credentialsDto) {
@@ -39,17 +39,17 @@ public class UserService {
                 if (passwordEncoder.matches(CharBuffer.wrap(credentialsDto.getPassword()), user.getPassword())) {
                     return userMapper.toUserDto(user);
                 } else {
-                    throw new CustomException("Invalid password", HttpStatus.BAD_REQUEST);
+                    throw new CustomHttpException("Invalid password", HttpStatus.BAD_REQUEST);
                 }
             })
-            .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND)));
+            .orElseThrow(() -> new CustomHttpException("User not found", HttpStatus.NOT_FOUND)));
     }
 
     public Mono<UserDto> register(SignUpDto signUpDto) {
         Mono<Optional<User>> userMono = Mono.fromFuture(userRepository.findByLogin(signUpDto.getLogin()));
         return userMono.flatMap(user -> {
             if (user.isPresent()) {
-                return Mono.error(new CustomException("User already exists", HttpStatus.BAD_REQUEST));
+                return Mono.error(new CustomHttpException("User already exists", HttpStatus.BAD_REQUEST));
             }
             User userToSave = userMapper.signUpToUser(signUpDto);
             userToSave.setId(UUID.randomUUID().toString());

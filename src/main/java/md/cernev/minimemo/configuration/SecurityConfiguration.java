@@ -27,7 +27,7 @@ public class SecurityConfiguration {
             .csrf(ServerHttpSecurity.CsrfSpec::disable)
             .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
             .authorizeExchange(authorizeExchange -> authorizeExchange
-                .pathMatchers("/login", "/register", "/api/open/**", "/actuator/**").permitAll().anyExchange()
+                .pathMatchers("/auth/**", "/api/open/**", "/actuator/**").permitAll().anyExchange()
                 .authenticated())
             .addFilterBefore(new JwtAuthFilter(userAuthProvider), SecurityWebFiltersOrder.AUTHENTICATION)
             .build();

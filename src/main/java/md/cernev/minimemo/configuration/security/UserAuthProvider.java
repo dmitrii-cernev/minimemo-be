@@ -8,7 +8,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import md.cernev.minimemo.service.UserService;
-import md.cernev.minimemo.util.CustomException;
+import md.cernev.minimemo.util.CustomHttpException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -26,10 +26,12 @@ public class UserAuthProvider {
     private final UserService userService;
     @Value("${security.jwt.token.secret:secret}")
     private String secretKey;
+    @Value("${security.jwt.token.expiration:3600000}")
+    private long validityInMs;
 
     public String createToken(String login) {
         Date now = new Date();
-        Date expiredAt = new Date(now.getTime() + 3_600_000);
+        Date expiredAt = new Date(now.getTime() + validityInMs);
         return JWT.create()
             .withIssuer(login)
             .withIssuedAt(now)
@@ -40,13 +42,12 @@ public class UserAuthProvider {
     public Mono<Authentication> validateToken(String token) {
         try {
             DecodedJWT decodedJWT = getDecodedJWT(token);
-
             return userService.findByLogin(decodedJWT.getIssuer())
                 .map(userDto -> new UsernamePasswordAuthenticationToken(userDto, null, Collections.emptyList()));
         } catch (IllegalArgumentException e) {
-            return Mono.error(new CustomException(e.getMessage(), HttpStatus.BAD_REQUEST));
+            return Mono.error(new CustomHttpException(e.getMessage(), HttpStatus.BAD_REQUEST));
         } catch (JWTVerificationException e) {
-            return Mono.error(new CustomException(e.getMessage(), HttpStatus.UNAUTHORIZED));
+            return Mono.error(new CustomHttpException(e.getMessage(), HttpStatus.UNAUTHORIZED));
         }
     }
 

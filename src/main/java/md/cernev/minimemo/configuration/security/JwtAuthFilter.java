@@ -28,6 +28,7 @@ public class JwtAuthFilter implements WebFilter {
                     .flatMap(authentication -> chain.filter(exchange)
                         .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication)))
                     .onErrorResume(e -> {
+                        //todo: may not work properly
                         ReactiveSecurityContextHolder.clearContext();
                         return Mono.error(e);
                     });
