@@ -14,7 +14,8 @@ public class MediaContentMapper {
 
   public static MediaContentDto map(Map<String, AttributeValue> item) {
     MediaContentDto mediaContentDto = new MediaContentDto();
-    mediaContentDto.setId(item.get("id").s());
+    mediaContentDto.setUserId(item.get("userId").s());
+    mediaContentDto.setSubId(item.get("subId").s());
     AttributeValue defaultValue = AttributeValue.builder().build();
     mediaContentDto.setVideoUrl(item.getOrDefault("videoUrl", defaultValue).s());
     mediaContentDto.setTitle(item.getOrDefault("title", defaultValue).s());

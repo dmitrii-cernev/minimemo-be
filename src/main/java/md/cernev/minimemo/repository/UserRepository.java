@@ -1,6 +1,7 @@
 package md.cernev.minimemo.repository;
 
 import lombok.RequiredArgsConstructor;
+import md.cernev.minimemo.entity.Subscriptions;
 import md.cernev.minimemo.entity.User;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,19 +26,19 @@ public class UserRepository {
     public CompletableFuture<Optional<User>> findByLogin(String login) {
         QueryRequest queryRequest = QueryRequest.builder()
             .tableName(tableName)
-            .indexName("login-index")
-            .keyConditionExpression("login = :login")
-            .expressionAttributeValues(Map.of(":login", AttributeValue.builder().s(login).build()))
+            .indexName("subId-index")
+            .keyConditionExpression("subId = :subId")
+            .expressionAttributeValues(Map.of(":subId", AttributeValue.builder().s(login).build()))
             .build();
         logger.info("Getting user from DynamoDB: {}", login);
         return dynamoDbAsyncClient.query(queryRequest).thenApply(queryResponse -> {
             if (queryResponse.hasItems() && queryResponse.items().size() == 1) {
                 Map<String, AttributeValue> item = queryResponse.items().get(0);
                 return Optional.of(User.builder()
-                    .id(item.get("id").s())
+                    .id(item.get("userId").s())
                     .firstName(item.get("firstName").s())
                     .lastName(item.get("lastName").s())
-                    .login(item.get("login").s())
+                    .login(item.get("subId").s())
                     .password(item.get("password").s())
                     .build());
             }
@@ -50,10 +51,11 @@ public class UserRepository {
         PutItemRequest putItemRequest = PutItemRequest.builder()
             .tableName(tableName)
             .item(Map.of(
-                "id", AttributeValue.builder().s(user.getId()).build(),
+                "userId", AttributeValue.builder().s(user.getId()).build(),
+                "subId", AttributeValue.builder().s(user.getLogin()).build(),
                 "firstName", AttributeValue.builder().s(user.getFirstName()).build(),
                 "lastName", AttributeValue.builder().s(user.getLastName()).build(),
-                "login", AttributeValue.builder().s(user.getLogin()).build(),
+                "subscription", AttributeValue.builder().s(Subscriptions.FREE.getSubscription()).build(),
                 "password", AttributeValue.builder().s(user.getPassword()).build()
             ))
             .build();

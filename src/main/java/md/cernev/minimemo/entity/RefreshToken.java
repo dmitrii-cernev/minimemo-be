@@ -10,8 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class RefreshToken {
-    private String id;
-    private String type;
+    private String userId;
     private String userLogin;
     private String refreshToken;
     private String expiration;

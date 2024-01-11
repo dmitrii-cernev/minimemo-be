@@ -7,9 +7,10 @@ import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -21,21 +22,21 @@ public class RefreshTokenRepository {
     @Value("${aws.dynamodb.tableName}")
     private String tableName;
 
-    public CompletableFuture<Optional<RefreshToken>> findByToken(String token) {
-        QueryRequest queryRequest = QueryRequest.builder()
+    public CompletableFuture<Optional<RefreshToken>> findByToken(String userId, String token) {
+        GetItemRequest getItemRequest = GetItemRequest.builder()
             .tableName(tableName)
-            .indexName("refreshToken-index")
-            .keyConditionExpression("refreshToken = :refreshToken")
-            .expressionAttributeValues(Map.of(":refreshToken", AttributeValue.builder().s(token).build()))
+            .key(Map.of(
+                "userId", AttributeValue.builder().s(userId).build(),
+                "subId", AttributeValue.builder().s(token).build()
+            ))
             .build();
-        return dynamoDbAsyncClient.query(queryRequest).thenApply(queryResponse -> {
-            if (queryResponse.hasItems() && queryResponse.items().size() == 1) {
-                Map<String, AttributeValue> item = queryResponse.items().get(0);
+        return dynamoDbAsyncClient.getItem(getItemRequest).thenApply(response -> {
+            if (response.hasItem()) {
+                Map<String, AttributeValue> item = response.item();
                 return Optional.of(RefreshToken.builder()
-                    .id(item.get("id").s())
-                    .type(item.get("type").s())
-                    .userLogin(item.get("userId").s())
-                    .refreshToken(item.get("refreshToken").s())
+                    .userId(item.get("userId").s())
+                    .refreshToken(item.get("subId").s())
+                    .userLogin(item.get("login").s())
                     .expiration(item.get("expiration").s())
                     .build());
             }
@@ -47,10 +48,9 @@ public class RefreshTokenRepository {
         PutItemRequest putItemRequest = PutItemRequest.builder()
             .tableName(tableName)
             .item(Map.of(
-                "id", AttributeValue.builder().s(refreshToken.getId()).build(),
-                "type", AttributeValue.builder().s(refreshToken.getType()).build(),
-                "userId", AttributeValue.builder().s(refreshToken.getUserLogin()).build(),
-                "refreshToken", AttributeValue.builder().s(refreshToken.getRefreshToken()).build(),
+                "userId", AttributeValue.builder().s(refreshToken.getUserId()).build(),
+                "subId", AttributeValue.builder().s(refreshToken.getRefreshToken()).build(),
+                "login", AttributeValue.builder().s(refreshToken.getUserLogin()).build(),
                 "expiration", AttributeValue.builder().s(refreshToken.getExpiration()).build()
             ))
             .build();
@@ -58,9 +58,12 @@ public class RefreshTokenRepository {
     }
 
     public void delete(RefreshToken token) {
+        Map<String, AttributeValue> key = new HashMap<>();
+        key.put("userId", AttributeValue.builder().s(token.getUserId()).build());
+        key.put("subId", AttributeValue.builder().s(token.getRefreshToken()).build());
         DeleteItemRequest deleteItemRequest = DeleteItemRequest.builder()
             .tableName(tableName)
-            .key(Map.of("id", AttributeValue.builder().s(token.getId()).build()))
+            .key(key)
             .build();
         dynamoDbAsyncClient.deleteItem(deleteItemRequest).join();
     }

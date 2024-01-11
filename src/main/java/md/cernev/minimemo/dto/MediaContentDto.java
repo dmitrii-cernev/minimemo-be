@@ -4,7 +4,8 @@ import lombok.Data;
 
 @Data
 public class MediaContentDto {
-  private String id;
+    private String userId;
+    private String subId;
   private String videoUrl;
   private String title;
   private String summary;

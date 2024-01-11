@@ -61,6 +61,10 @@ public class UserAuthProvider {
         return getDecodedJWT(token.split(" ")[1]).getIssuer();
     }
 
+    public String getIssuerAnyway(String token) {
+        return JWT.decode(token).getIssuer();
+    }
+
     @PostConstruct
     protected void init() {
         secretKey = Base64.getEncoder().encodeToString(secretKey.getBytes());

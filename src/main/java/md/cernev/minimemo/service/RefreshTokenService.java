@@ -5,7 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import md.cernev.minimemo.configuration.security.UserAuthProvider;
 import md.cernev.minimemo.dto.UserDto;
 import md.cernev.minimemo.entity.RefreshToken;
+import md.cernev.minimemo.entity.User;
 import md.cernev.minimemo.repository.RefreshTokenRepository;
+import md.cernev.minimemo.repository.UserRepository;
 import md.cernev.minimemo.util.CustomHttpException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -21,26 +23,36 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
+    private final UserRepository userRepository;
     private final UserAuthProvider userAuthProvider;
     @Value("${jwt.refreshTokenExpiration}")
     private long refreshTokenExpiration;
 
-    public CompletableFuture<String> createToken(String userLogin) {
+    public CompletableFuture<String> createToken(String userId, String userLogin) {
         log.info("Creating refresh token for user {}", userLogin);
         RefreshToken refreshToken = RefreshToken.builder()
-            .id(UUID.randomUUID().toString())
-            .type("refresh")
-            .userLogin(userLogin)
-            //todo: use something more secure
+            .userId(userId)
             .refreshToken(UUID.randomUUID().toString())
+            .userLogin(userLogin)
             .expiration(ZonedDateTime.now(ZoneId.systemDefault()).plusMinutes(refreshTokenExpiration).toString())
             .build();
         return refreshTokenRepository.save(refreshToken).thenApply(RefreshToken::getRefreshToken);
     }
 
-    public CompletableFuture<UserDto> refreshToken(String refreshToken) {
+    public CompletableFuture<UserDto> refreshToken(String login, String refreshToken) {
         log.info("Refreshing token {}", refreshToken);
-        return refreshTokenRepository.findByToken(refreshToken)
+        CompletableFuture<User> userFuture = userRepository.findByLogin(login)
+            .thenApply(user -> {
+                if (user.isEmpty()) {
+                    throw new CustomHttpException("User not found", HttpStatus.UNAUTHORIZED);
+                }
+                return user.get();
+            });
+        return userFuture.thenCompose(user -> refreshTokenByUserId(user.getId(), refreshToken));
+    }
+
+    private CompletableFuture<UserDto> refreshTokenByUserId(String userId, String refreshToken) {
+        return refreshTokenRepository.findByToken(userId, refreshToken)
             .thenApply(rt -> {
                 if (rt.isEmpty()) {
                     throw new CustomHttpException("Refresh token not found", HttpStatus.UNAUTHORIZED);
@@ -55,8 +67,7 @@ public class RefreshTokenService {
                 String newExpiration = ZonedDateTime.now(ZoneId.systemDefault()).plusMinutes(refreshTokenExpiration)
                     .toString();
                 RefreshToken newRefreshTokenEntity = RefreshToken.builder()
-                    .id(token.getId())
-                    .type(token.getType())
+                    .userId(token.getUserId())
                     .userLogin(token.getUserLogin())
                     .refreshToken(newRefreshToken)
                     .expiration(newExpiration)
