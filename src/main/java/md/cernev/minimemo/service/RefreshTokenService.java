@@ -62,7 +62,7 @@ public class RefreshTokenService {
                     refreshTokenRepository.delete(token);
                     throw new CustomHttpException("Refresh token expired", HttpStatus.UNAUTHORIZED);
                 }
-                String accessToken = userAuthProvider.createToken(token.getUserLogin());
+                String accessToken = userAuthProvider.createToken(token.getUserLogin(), userId);
                 String newRefreshToken = UUID.randomUUID().toString();
                 String newExpiration = ZonedDateTime.now(ZoneId.systemDefault()).plusMinutes(refreshTokenExpiration)
                     .toString();

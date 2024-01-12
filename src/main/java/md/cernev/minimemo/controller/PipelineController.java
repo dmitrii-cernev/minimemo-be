@@ -15,7 +15,7 @@ public class PipelineController {
 
   @PostMapping("/process")
   public Mono<String> startProcess(@RequestHeader(name = "Authorization") String token, @RequestParam String url) {
-    String userId = userAuthProvider.getIssuer(token);
+    String userId = userAuthProvider.getUserId(token);
     return pipelineService.startPipeline(url, userId);
   }
   @GetMapping("/video/{videoId}")
@@ -25,12 +25,8 @@ public class PipelineController {
 
   @GetMapping("/videos")
   public Mono<Object> getVideos(@RequestHeader(name = "Authorization") String token) {
-    String userId = userAuthProvider.getIssuer(token);
+    String userId = userAuthProvider.getUserId(token);
     return pipelineService.getVideos(userId);
   }
 
-  @GetMapping("/ping")
-  public Mono<String> ping() {
-    return pipelineService.ping();
-  }
 }

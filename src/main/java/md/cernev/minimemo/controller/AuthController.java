@@ -30,7 +30,7 @@ public class AuthController {
     public Mono<ResponseEntity<UserDto>> login(@RequestBody CredentialsDto credentialsDto) {
         Mono<UserDto> login = userService.login(credentialsDto);
         return login.map(userDto -> {
-            userDto.setToken(userAuthProvider.createToken(userDto.getLogin()));
+            userDto.setToken(userAuthProvider.createToken(userDto.getLogin(), userDto.getId()));
             CompletableFuture<String> refreshToken = refreshTokenService.createToken(userDto.getId(), userDto.getLogin());
             //todo: blockalbe?
             userDto.setRefreshToken(refreshToken.join());
@@ -42,7 +42,7 @@ public class AuthController {
     public Mono<ResponseEntity<UserDto>> register(@RequestBody SignUpDto signUpDto) {
         Mono<UserDto> register = userService.register(signUpDto);
         return register.map(userDto -> {
-            userDto.setToken(userAuthProvider.createToken(userDto.getLogin()));
+            userDto.setToken(userAuthProvider.createToken(userDto.getLogin(), userDto.getId()));
             CompletableFuture<String> refreshToken = refreshTokenService.createToken(userDto.getId(), userDto.getLogin());
             //todo: blockalbe?
             userDto.setRefreshToken(refreshToken.join());
@@ -52,7 +52,6 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public Mono<ResponseEntity<UserDto>> refresh(@RequestBody RefreshTokenRequestDto refreshToken) {
-        //todo: also send expired, but valid access token. Should be not very old.
         String login = userAuthProvider.getIssuerAnyway(refreshToken.getAccessToken());
         CompletableFuture<UserDto> userDtoCompletableFuture = refreshTokenService.refreshToken(login, refreshToken.getRefreshToken());
         return Mono.fromFuture(userDtoCompletableFuture).map(ResponseEntity::ok);

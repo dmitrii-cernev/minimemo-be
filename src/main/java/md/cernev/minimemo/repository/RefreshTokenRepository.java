@@ -18,6 +18,9 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 @Repository
 public class RefreshTokenRepository {
+    public static final String USER_ID = "userId";
+    public static final String SUB_ID = "subId";
+    public static final String REFRESH_TOKEN = "refreshToken";
     private final DynamoDbAsyncClient dynamoDbAsyncClient;
     @Value("${aws.dynamodb.tableName}")
     private String tableName;
@@ -26,19 +29,21 @@ public class RefreshTokenRepository {
         GetItemRequest getItemRequest = GetItemRequest.builder()
             .tableName(tableName)
             .key(Map.of(
-                "userId", AttributeValue.builder().s(userId).build(),
-                "subId", AttributeValue.builder().s(token).build()
+                USER_ID, AttributeValue.builder().s(userId).build(),
+                SUB_ID, AttributeValue.builder().s(REFRESH_TOKEN).build()
             ))
             .build();
         return dynamoDbAsyncClient.getItem(getItemRequest).thenApply(response -> {
             if (response.hasItem()) {
                 Map<String, AttributeValue> item = response.item();
-                return Optional.of(RefreshToken.builder()
-                    .userId(item.get("userId").s())
-                    .refreshToken(item.get("subId").s())
-                    .userLogin(item.get("login").s())
-                    .expiration(item.get("expiration").s())
-                    .build());
+                if (item.get(REFRESH_TOKEN).s().equals(token)) {
+                    return Optional.of(RefreshToken.builder()
+                        .userId(item.get(USER_ID).s())
+                        .refreshToken(item.get(SUB_ID).s())
+                        .userLogin(item.get("login").s())
+                        .expiration(item.get("expiration").s())
+                        .build());
+                }
             }
             return Optional.empty();
         });
@@ -48,9 +53,10 @@ public class RefreshTokenRepository {
         PutItemRequest putItemRequest = PutItemRequest.builder()
             .tableName(tableName)
             .item(Map.of(
-                "userId", AttributeValue.builder().s(refreshToken.getUserId()).build(),
-                "subId", AttributeValue.builder().s(refreshToken.getRefreshToken()).build(),
+                USER_ID, AttributeValue.builder().s(refreshToken.getUserId()).build(),
+                SUB_ID, AttributeValue.builder().s(REFRESH_TOKEN).build(),
                 "login", AttributeValue.builder().s(refreshToken.getUserLogin()).build(),
+                REFRESH_TOKEN, AttributeValue.builder().s(refreshToken.getRefreshToken()).build(),
                 "expiration", AttributeValue.builder().s(refreshToken.getExpiration()).build()
             ))
             .build();
@@ -59,8 +65,8 @@ public class RefreshTokenRepository {
 
     public void delete(RefreshToken token) {
         Map<String, AttributeValue> key = new HashMap<>();
-        key.put("userId", AttributeValue.builder().s(token.getUserId()).build());
-        key.put("subId", AttributeValue.builder().s(token.getRefreshToken()).build());
+        key.put(USER_ID, AttributeValue.builder().s(token.getUserId()).build());
+        key.put(SUB_ID, AttributeValue.builder().s(REFRESH_TOKEN).build());
         DeleteItemRequest deleteItemRequest = DeleteItemRequest.builder()
             .tableName(tableName)
             .key(key)

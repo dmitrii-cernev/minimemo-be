@@ -69,9 +69,13 @@ public class VideosRepository {
     return dynamoDbAsyncClient.query(queryRequest).thenApply(queryResponse -> {
       if (queryResponse.hasItems()) {
         List<Map<String, AttributeValue>> items = queryResponse.items();
-        return items.stream().map(MediaContentMapper::map).toList();
+        return items.stream().filter(this::filterVideoItems).map(MediaContentMapper::map).toList();
       }
       return Collections.emptyList();
     });
+  }
+
+  private boolean filterVideoItems(Map<String, AttributeValue> map) {
+    return map.containsKey("platform") && map.containsKey("videoUrl");
   }
 }

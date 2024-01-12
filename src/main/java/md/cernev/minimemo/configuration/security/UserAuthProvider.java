@@ -30,11 +30,16 @@ public class UserAuthProvider {
     private long validityInMs;
 
     public String createToken(String login) {
+        return createToken(login, "");
+    }
+
+    public String createToken(String login, String userId) {
         Date now = new Date();
         Date expiredAt = new Date(now.getTime() + validityInMs);
         return JWT.create()
             .withIssuer(login)
             .withIssuedAt(now)
+            .withClaim("userId", userId)
             .withExpiresAt(expiredAt)
             .sign(Algorithm.HMAC256(secretKey));
     }
@@ -63,6 +68,10 @@ public class UserAuthProvider {
 
     public String getIssuerAnyway(String token) {
         return JWT.decode(token).getIssuer();
+    }
+
+    public String getUserId(String token) {
+        return getDecodedJWT(token.split(" ")[1]).getClaim("userId").asString();
     }
 
     @PostConstruct
