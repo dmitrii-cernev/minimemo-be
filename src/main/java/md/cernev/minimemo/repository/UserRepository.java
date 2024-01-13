@@ -1,7 +1,6 @@
 package md.cernev.minimemo.repository;
 
 import lombok.RequiredArgsConstructor;
-import md.cernev.minimemo.entity.Subscriptions;
 import md.cernev.minimemo.entity.User;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
@@ -55,7 +54,6 @@ public class UserRepository {
                 "subId", AttributeValue.builder().s(user.getLogin()).build(),
                 "firstName", AttributeValue.builder().s(user.getFirstName()).build(),
                 "lastName", AttributeValue.builder().s(user.getLastName()).build(),
-                "subscription", AttributeValue.builder().s(Subscriptions.FREE.getSubscription()).build(),
                 "password", AttributeValue.builder().s(user.getPassword()).build()
             ))
             .build();
