@@ -7,10 +7,7 @@ import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.PutItemResponse;
-import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
+import software.amazon.awssdk.services.dynamodb.model.*;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,6 +30,7 @@ public class VideosRepository {
     itemValues.put("subId", AttributeValue.builder().s(videoId).build());
     itemValues.put("videoUrl", AttributeValue.builder().s(videoUrl).build());
     itemValues.put("platform", AttributeValue.builder().s(platform.name()).build());
+    itemValues.put("status", AttributeValue.builder().s("PROCESSING").build());
     itemValues.put("createdAt", AttributeValue.builder().s(String.valueOf(System.currentTimeMillis())).build());
     PutItemRequest putItemRequest = PutItemRequest.builder()
         .item(itemValues)
@@ -40,6 +38,17 @@ public class VideosRepository {
         .build();
     logger.info("Putting item in DynamoDB: {}", videoId);
     return dynamoDbAsyncClient.putItem(putItemRequest);
+  }
+
+  public CompletableFuture<UpdateItemResponse> updateItemStatus(String userId, String videoId, String status) {
+    UpdateItemRequest updateItemRequest = UpdateItemRequest.builder()
+        .tableName(tableName)
+        .key(Map.of("userId", AttributeValue.builder().s(userId).build(), "subId", AttributeValue.builder().s(videoId)
+            .build()))
+        .attributeUpdates(Map.of("status", AttributeValueUpdate.builder().value(builder -> builder.s(status)).build()))
+        .build();
+    logger.info("Updating item in DynamoDB: {}", videoId);
+    return dynamoDbAsyncClient.updateItem(updateItemRequest);
   }
 
   public CompletableFuture<MediaContentDto> getItem(String videoId) {

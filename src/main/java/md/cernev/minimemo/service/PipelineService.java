@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.dynamodb.model.PutItemResponse;
 
@@ -65,7 +66,17 @@ public class PipelineService {
             .uri(lambdaHost + "/process")
             .bodyValue(getRequestBody(userId, videoId, downloadLink).toString())
             .retrieve()
-            .bodyToMono(String.class));
+            .bodyToMono(String.class))
+        .doOnError(throwable -> {
+            if (throwable instanceof WebClientResponseException.ServiceUnavailable) {
+                logger.warn("Video can be too long");
+                miniMemoRepository.updateItemStatus(userId, videoId, "TOO_LONG").join();
+                throw new CustomHttpException("Video can be too long", HttpStatus.REQUEST_TIMEOUT);
+            }
+            logger.error("Error while getting summary", throwable);
+            miniMemoRepository.updateItemStatus(userId, videoId, "ERROR").join();
+            throw new CustomHttpException("Error while getting summary", HttpStatus.INTERNAL_SERVER_ERROR);
+        });
   }
 
   private JSONObject getRequestBody(String userId, String videoId, String url) {
