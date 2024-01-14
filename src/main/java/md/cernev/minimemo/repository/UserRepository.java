@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
 
@@ -44,6 +45,26 @@ public class UserRepository {
             return Optional.empty();
         });
 
+    }
+
+    public CompletableFuture<User> findByUserId(String userId, String login) {
+        GetItemRequest getItemRequest = GetItemRequest.builder()
+            .tableName(tableName)
+            .key(Map.of(
+                "userId", AttributeValue.builder().s(userId).build(),
+                "subId", AttributeValue.builder().s(login).build()
+            ))
+            .build();
+        logger.info("Getting user from DynamoDB: {}", login);
+        return dynamoDbAsyncClient.getItem(getItemRequest).thenApply(getItemResponse -> {
+            Map<String, AttributeValue> item = getItemResponse.item();
+            return User.builder()
+                .id(item.get("userId").s())
+                .firstName(item.get("firstName").s())
+                .lastName(item.get("lastName").s())
+                .login(item.get("subId").s())
+                .build();
+        });
     }
 
     public CompletableFuture<User> save(User user) {

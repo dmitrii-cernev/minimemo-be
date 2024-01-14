@@ -58,4 +58,15 @@ public class UserService {
                 .map(userMapper::toUserDto);
         });
     }
+
+    public Mono<UserDto> findByUserId(String userId, String login) {
+        return Mono.fromFuture(userRepository.findByUserId(userId, login))
+            .handle((user, sink) -> {
+                if (user.getLogin().equals(login)) {
+                    sink.next(userMapper.toUserDto(user));
+                } else {
+                    sink.error(new CustomHttpException("User not found", HttpStatus.NOT_FOUND));
+                }
+            });
+    }
 }
