@@ -18,9 +18,10 @@ public class WebConfiguration {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration corsConfiguration = new CorsConfiguration();
         corsConfiguration.setAllowCredentials(true);
-        corsConfiguration.addAllowedOrigin("https://sage-meringue-433b54.netlify.app");
+        corsConfiguration.addAllowedOrigin("https://minimemo.netlify.app");
+        corsConfiguration.addAllowedOrigin("https://minimemo.io");
+        corsConfiguration.addAllowedOrigin("https://minimemo.ai");
         corsConfiguration.addAllowedOrigin("http://localhost:5173");
-        corsConfiguration.addAllowedOrigin("http://sage-meringue-433b54.netlify.app");
         corsConfiguration.setAllowedHeaders(Arrays.asList(
             HttpHeaders.AUTHORIZATION,
             HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,

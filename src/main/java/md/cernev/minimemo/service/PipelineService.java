@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import software.amazon.awssdk.services.dynamodb.model.PutItemResponse;
 
 import java.util.UUID;
@@ -28,24 +29,27 @@ public class PipelineService {
   @Value("${aws.lambda.scrapper.host}")
   private String lambdaHost;
 
-  public Mono<String> startPipeline(String url, String userId) {
-    return subscriptionService.getSubscriptionsCount(userId)
-        .flatMap(countDto -> {
-          if (countDto.getCount() <= 0) {
-            logger.warn("No calls left for user: {}", userId);
-            return Mono.error(new CustomHttpException("No calls left", HttpStatus.BAD_REQUEST));
-          }
-          Platform platform = getPlatform(url);
-          logger.info("Starting pipeline for url: {}", url);
-          //todo: this method is blocking
-          String videoId = UUID.randomUUID().toString();
-          Mono<PutItemResponse> putItem = Mono.fromFuture(() -> miniMemoRepository.putItem(userId, videoId, url, platform));
-          Mono<String> summary = getSummary(userId, videoId, url, platform);
-          return Mono.when(putItem, summary)
-              .then(Mono.defer(() -> subscriptionService.decrementCount(userId)))
-              .thenReturn(videoId);
-        });
-  }
+    public Mono<String> startPipeline(String url, String userId) {
+        return subscriptionService.getSubscriptionsCount(userId)
+            .flatMap(countDto -> {
+                if (countDto.getCount() <= 0) {
+                    logger.warn("No calls left for user: {}", userId);
+                    return Mono.error(new CustomHttpException("No calls left", HttpStatus.BAD_REQUEST));
+                }
+                Platform platform = getPlatform(url);
+                logger.info("Starting pipeline for user: {}", url);
+                String videoId = UUID.randomUUID().toString();
+                Mono<PutItemResponse> putItem = Mono.fromFuture(() -> miniMemoRepository.putItem(userId, videoId, url, platform));
+                Mono<String> summary = getSummary(userId, videoId, url, platform);
+                return Mono.when(putItem, summary)
+                    .thenReturn(videoId)
+                    .publishOn(Schedulers.boundedElastic())
+                    .doOnCancel(() -> {
+                        logger.info("Canceled pipeline for user: {}", userId);
+                        getSummary(userId, videoId, url, platform).subscribe();
+                    });
+            });
+    }
 
   private Platform getPlatform(String url) {
     if (url.contains("tiktok")) {
@@ -60,6 +64,7 @@ public class PipelineService {
   }
 
   private Mono<String> getSummary(String userId, String videoId, String url, Platform platform) {
+      logger.info("Getting summary for user: {}", userId);
     return scrapper.getDownloadLink(url, platform)
         .flatMap(downloadLink -> webClient
             .post()
