@@ -54,6 +54,7 @@ public class UserService {
             User userToSave = userMapper.signUpToUser(signUpDto);
             userToSave.setId(UUID.randomUUID().toString());
             userToSave.setPassword(passwordEncoder.encode(CharBuffer.wrap(signUpDto.getPassword())));
+            userToSave.setCreatedAt(String.valueOf(System.currentTimeMillis()));
             return Mono.fromFuture(userRepository.save(userToSave))
                 .map(userMapper::toUserDto);
         });

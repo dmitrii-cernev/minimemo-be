@@ -75,7 +75,8 @@ public class UserRepository {
                 "subId", AttributeValue.builder().s(user.getLogin()).build(),
                 "firstName", AttributeValue.builder().s(user.getFirstName()).build(),
                 "lastName", AttributeValue.builder().s(user.getLastName()).build(),
-                "password", AttributeValue.builder().s(user.getPassword()).build()
+                "password", AttributeValue.builder().s(user.getPassword()).build(),
+                "createdAt", AttributeValue.builder().s(user.getCreatedAt()).build()
             ))
             .build();
         logger.info("Putting user in DynamoDB: {}", user.getLogin());

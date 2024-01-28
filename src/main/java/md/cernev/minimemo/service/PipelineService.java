@@ -37,7 +37,7 @@ public class PipelineService {
                     return Mono.error(new CustomHttpException("No calls left", HttpStatus.BAD_REQUEST));
                 }
                 Platform platform = getPlatform(url);
-                logger.info("Starting pipeline for user: {}", url);
+                logger.info("Starting pipeline for user: {}", userId);
                 String videoId = UUID.randomUUID().toString();
                 Mono<PutItemResponse> putItem = Mono.fromFuture(() -> miniMemoRepository.putItem(userId, videoId, url, platform));
                 Mono<String> summary = getSummary(userId, videoId, url, platform);
@@ -63,26 +63,26 @@ public class PipelineService {
     }
   }
 
-  private Mono<String> getSummary(String userId, String videoId, String url, Platform platform) {
-      logger.info("Getting summary for user: {}", userId);
-    return scrapper.getDownloadLink(url, platform)
-        .flatMap(downloadLink -> webClient
-            .post()
-            .uri(lambdaHost + "/process")
-            .bodyValue(getRequestBody(userId, videoId, downloadLink).toString())
-            .retrieve()
-            .bodyToMono(String.class))
-        .doOnError(throwable -> {
-            if (throwable instanceof WebClientResponseException.ServiceUnavailable) {
-                logger.warn("Video can be too long");
-                miniMemoRepository.updateItemStatus(userId, videoId, "TOO_LONG").join();
-                throw new CustomHttpException("Video can be too long", HttpStatus.REQUEST_TIMEOUT);
-            }
-            logger.error("Error while getting summary", throwable);
-            miniMemoRepository.updateItemStatus(userId, videoId, "ERROR").join();
-            throw new CustomHttpException("Error while getting summary", HttpStatus.INTERNAL_SERVER_ERROR);
-        });
-  }
+    private Mono<String> getSummary(String userId, String videoId, String url, Platform platform) {
+        logger.info("Requesting summary for user: {}", userId);
+        return scrapper.getDownloadLink(url, platform)
+            .flatMap(downloadLink -> webClient
+                .post()
+                .uri(lambdaHost + "/process")
+                .bodyValue(getRequestBody(userId, videoId, downloadLink).toString())
+                .retrieve()
+                .bodyToMono(String.class))
+            .doOnError(throwable -> {
+                if (throwable instanceof WebClientResponseException.ServiceUnavailable) {
+                    logger.warn("Video can be too long");
+                    miniMemoRepository.updateItemStatus(userId, videoId, "TOO_LONG").join();
+                    throw new CustomHttpException("Video can be too long", HttpStatus.REQUEST_TIMEOUT);
+                }
+                logger.error("Error while getting summary", throwable);
+                miniMemoRepository.updateItemStatus(userId, videoId, "ERROR").join();
+                throw new CustomHttpException("Error while getting summary", HttpStatus.INTERNAL_SERVER_ERROR);
+            });
+    }
 
   private JSONObject getRequestBody(String userId, String videoId, String url) {
     JSONObject requestBody = new JSONObject();
