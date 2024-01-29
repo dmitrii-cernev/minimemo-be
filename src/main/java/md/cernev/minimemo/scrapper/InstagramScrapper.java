@@ -1,6 +1,7 @@
 package md.cernev.minimemo.scrapper;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,27 @@ public class InstagramScrapper {
   public InstagramScrapper(WebClient webClient) {this.webClient = webClient;}
 
   public Mono<String> getDownloadLink(String url) {
+    return getDownloadLink2(url);
+  }
+
+  public Mono<String> getDownloadLink2(String url) {
+    logger.info("Getting Instagram video url...");
+    JSONObject requestBody = new JSONObject();
+    requestBody.put("url", url);
+    return webClient
+        .post()
+        .uri("https://instagram120.p.rapidapi.com/api/instagram/links")
+        .header("x-rapidapi-key", RAPID_API_KEY)
+        .header("x-rapidapi-host", "instagram120.p.rapidapi.com")
+        .header("content-type", "application/json")
+        .bodyValue(requestBody.toString())
+        .retrieve()
+        .bodyToMono(String.class)
+        .map(body -> new JSONArray(body).getJSONObject(0).getJSONArray("urls").getJSONObject(0).getString("url"));
+
+  }
+
+  public Mono<String> getDownloadLink1(String url) {
     logger.info("Getting Instagram video url...");
     return webClient
         .get()
