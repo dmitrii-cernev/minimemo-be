@@ -18,4 +18,8 @@ public class SubscriptionService {
     public Mono<CountDto> decrementCount(String userId) {
         return subscriptionRepository.decrementCount(userId);
     }
+
+    public Mono<CountDto> incrementCount(String userId) {
+        return subscriptionRepository.incrementCount(userId);
+    }
 }

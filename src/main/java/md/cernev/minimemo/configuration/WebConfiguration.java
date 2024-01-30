@@ -19,6 +19,7 @@ public class WebConfiguration {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
         corsConfiguration.setAllowCredentials(true);
         corsConfiguration.addAllowedOrigin("https://minimemo.netlify.app");
+        corsConfiguration.addAllowedOrigin("https://dev--minimemo.netlify.app");
         corsConfiguration.addAllowedOrigin("https://minimemo.io");
         corsConfiguration.addAllowedOrigin("https://minimemo.ai");
         corsConfiguration.addAllowedOrigin("http://localhost:5173");

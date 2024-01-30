@@ -31,10 +31,14 @@ public class PipelineService {
 
     public Mono<String> startPipeline(String url, String userId) {
         return subscriptionService.getSubscriptionsCount(userId)
+            .publishOn(Schedulers.boundedElastic())
             .flatMap(countDto -> {
                 if (countDto.getCount() <= 0) {
                     logger.warn("No calls left for user: {}", userId);
                     return Mono.error(new CustomHttpException("No calls left", HttpStatus.BAD_REQUEST));
+                } else {
+                    logger.info("Calls left for user: {}", countDto.getCount());
+                    subscriptionService.decrementCount(userId).subscribe();
                 }
                 Platform platform = getPlatform(url);
                 logger.info("Starting pipeline for user: {}", userId);
@@ -59,7 +63,7 @@ public class PipelineService {
     } else if (url.contains("shorts")) {
       return Platform.SHORTS;
     } else {
-      throw new RuntimeException("Unsupported url");
+        throw new CustomHttpException("Unsupported url", HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -72,11 +76,15 @@ public class PipelineService {
                 .bodyValue(getRequestBody(userId, videoId, downloadLink).toString())
                 .retrieve()
                 .bodyToMono(String.class))
+            .publishOn(Schedulers.boundedElastic())
+            .doOnSuccess(s -> logger.info("Summary received for user: {}", userId))
             .doOnError(throwable -> {
                 if (throwable instanceof WebClientResponseException.ServiceUnavailable) {
                     logger.warn("Video can be too long");
                     miniMemoRepository.updateItemStatus(userId, videoId, "TOO_LONG").join();
                     throw new CustomHttpException("Video can be too long", HttpStatus.REQUEST_TIMEOUT);
+                } else {
+                    subscriptionService.incrementCount(userId).subscribe();
                 }
                 logger.error("Error while getting summary", throwable);
                 miniMemoRepository.updateItemStatus(userId, videoId, "ERROR").join();
