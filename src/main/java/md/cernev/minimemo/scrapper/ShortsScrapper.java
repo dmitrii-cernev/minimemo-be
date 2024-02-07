@@ -34,7 +34,7 @@ public class ShortsScrapper {
         .bodyValue(requestBody.toString())
         .retrieve()
         .bodyToMono(String.class)
-        .map(body -> new JSONArray(body).getJSONObject(0).getJSONArray("urls").getJSONObject(1).getString("url"));
+        .map(body -> new JSONArray(body).getJSONObject(0).getJSONArray("urls").getJSONObject(0).getString("url"));
 
   }
 }

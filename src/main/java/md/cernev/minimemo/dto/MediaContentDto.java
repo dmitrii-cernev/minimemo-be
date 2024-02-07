@@ -10,6 +10,7 @@ public class MediaContentDto {
     private String title;
     private String summary;
     private String transcription;
+    private String tags;
     private String platform;
     private String status;
     private String createdAt;

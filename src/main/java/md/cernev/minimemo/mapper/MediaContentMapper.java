@@ -21,6 +21,7 @@ public class MediaContentMapper {
     mediaContentDto.setTitle(item.getOrDefault("title", defaultValue).s());
     mediaContentDto.setSummary(item.getOrDefault("summary", defaultValue).s());
     mediaContentDto.setTranscription(item.getOrDefault("transcription", defaultValue).s());
+    mediaContentDto.setTags(item.getOrDefault("tags", defaultValue).s());
     mediaContentDto.setPlatform(item.getOrDefault("platform", defaultValue).s());
     mediaContentDto.setStatus(item.getOrDefault("status", defaultValue).s());
     mediaContentDto.setCreatedAt(item.getOrDefault("createdAt", defaultValue).s());

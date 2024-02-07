@@ -10,6 +10,7 @@ public class MediaContent {
   private String title;
   private String summary;
   private String transcription;
+  private String tags;
   private String platform;
   private String createdAt;
   private String updatedAt;
