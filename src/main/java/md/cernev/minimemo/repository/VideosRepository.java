@@ -6,6 +6,7 @@ import md.cernev.minimemo.util.Platform;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
@@ -76,6 +77,26 @@ public class VideosRepository {
         .build();
     logger.info("Getting items from DynamoDB: {}", userId);
     return dynamoDbAsyncClient.query(queryRequest).thenApply(queryResponse -> {
+      if (queryResponse.hasItems()) {
+        List<Map<String, AttributeValue>> items = queryResponse.items();
+        return items.stream().filter(this::filterVideoItems).map(MediaContentMapper::map).toList();
+      }
+      return Collections.emptyList();
+    });
+  }
+
+  public Mono<List<MediaContentDto>> findItems(String userId, String query) {
+    Map<String, AttributeValue> expressionAttributeValues = Map.of(
+        ":userId", AttributeValue.builder().s(userId).build(),
+        ":value", AttributeValue.builder().s(query).build());
+    QueryRequest queryRequest = QueryRequest.builder()
+        .tableName(tableName)
+        .keyConditionExpression("userId = :userId")
+        .filterExpression("contains(title, :value) OR contains(tags, :value) OR contains(summary, :value) OR contains(transcription, :value)")
+        .expressionAttributeValues(expressionAttributeValues)
+        .build();
+    logger.info("Finding items from DynamoDB: {}", query);
+    return Mono.fromFuture(dynamoDbAsyncClient.query(queryRequest)).map(queryResponse -> {
       if (queryResponse.hasItems()) {
         List<Map<String, AttributeValue>> items = queryResponse.items();
         return items.stream().filter(this::filterVideoItems).map(MediaContentMapper::map).toList();

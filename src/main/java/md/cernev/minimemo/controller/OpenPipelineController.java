@@ -1,6 +1,6 @@
 package md.cernev.minimemo.controller;
 
-import md.cernev.minimemo.service.PipelineService;
+import md.cernev.minimemo.service.MediaService;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -10,27 +10,27 @@ import reactor.core.publisher.Mono;
 @RestController()
 @RequestMapping("/api/open")
 public class OpenPipelineController {
-    private final PipelineService pipelineService;
+    private final MediaService mediaService;
 
-    public OpenPipelineController(PipelineService pipelineService) {this.pipelineService = pipelineService;}
+    public OpenPipelineController(MediaService mediaService) {this.mediaService = mediaService;}
 
     @PostMapping("/process")
     public Mono<String> startProcess(@RequestParam String url, @RequestParam String userId) {
-        return pipelineService.startPipeline(url, userId);
+        return mediaService.startPipeline(url, userId);
     }
 
     @GetMapping("/video/{videoId}")
     public Mono<Object> getVideoInfo(@PathVariable String videoId) {
-        return pipelineService.getVideoInfo(videoId);
+        return mediaService.getVideoInfo(videoId);
     }
 
     @GetMapping("/videos/{userId}")
     public Mono<Object> getVideos(@PathVariable String userId) {
-        return pipelineService.getVideos(userId);
+        return mediaService.getVideos(userId);
     }
 
     @GetMapping("/ping")
     public Mono<String> ping() {
-        return pipelineService.ping();
+        return mediaService.ping();
     }
 }

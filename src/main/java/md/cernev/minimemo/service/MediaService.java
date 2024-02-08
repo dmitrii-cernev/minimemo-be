@@ -1,6 +1,7 @@
 package md.cernev.minimemo.service;
 
 import lombok.RequiredArgsConstructor;
+import md.cernev.minimemo.dto.MediaContentDto;
 import md.cernev.minimemo.repository.VideosRepository;
 import md.cernev.minimemo.scrapper.Scrapper;
 import md.cernev.minimemo.util.CustomHttpException;
@@ -16,15 +17,16 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import software.amazon.awssdk.services.dynamodb.model.PutItemResponse;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class PipelineService {
-  private static final Logger logger = org.slf4j.LoggerFactory.getLogger(PipelineService.class);
+public class MediaService {
+    private static final Logger logger = org.slf4j.LoggerFactory.getLogger(MediaService.class);
   private final WebClient webClient;
   private final Scrapper scrapper;
-  private final VideosRepository miniMemoRepository;
+    private final VideosRepository videosRepository;
   private final SubscriptionService subscriptionService;
   @Value("${aws.lambda.scrapper.host}")
   private String lambdaHost;
@@ -43,7 +45,7 @@ public class PipelineService {
                 Platform platform = getPlatform(url);
                 logger.info("Starting pipeline for user: {}", userId);
                 String videoId = UUID.randomUUID().toString();
-                Mono<PutItemResponse> putItem = Mono.fromFuture(() -> miniMemoRepository.putItem(userId, videoId, url, platform));
+                Mono<PutItemResponse> putItem = Mono.fromFuture(() -> videosRepository.putItem(userId, videoId, url, platform));
                 Mono<String> summary = getSummary(userId, videoId, url, platform);
                 return Mono.when(putItem, summary)
                     .thenReturn(videoId)
@@ -55,7 +57,7 @@ public class PipelineService {
             });
     }
 
-  private Platform getPlatform(String url) {
+    private Platform getPlatform(String url) {
     if (url.contains("tiktok")) {
       return Platform.TIKTOK;
     } else if (url.contains("instagram")) {
@@ -81,15 +83,19 @@ public class PipelineService {
             .doOnError(throwable -> {
                 if (throwable instanceof WebClientResponseException.ServiceUnavailable) {
                     logger.warn("Video can be too long");
-                    miniMemoRepository.updateItemStatus(userId, videoId, "TOO_LONG").join();
+                    videosRepository.updateItemStatus(userId, videoId, "TOO_LONG").join();
                     throw new CustomHttpException("Video can be too long", HttpStatus.REQUEST_TIMEOUT);
                 } else {
                     subscriptionService.incrementCount(userId).subscribe();
                 }
                 logger.error("Error while getting summary", throwable);
-                miniMemoRepository.updateItemStatus(userId, videoId, "ERROR").join();
+                videosRepository.updateItemStatus(userId, videoId, "ERROR").join();
                 throw new CustomHttpException("Error while getting summary", HttpStatus.INTERNAL_SERVER_ERROR);
             });
+    }
+
+    public Mono<List<MediaContentDto>> findVideos(String userId, String query) {
+        return videosRepository.findItems(userId, query);
     }
 
   private JSONObject getRequestBody(String userId, String videoId, String url) {
@@ -102,12 +108,12 @@ public class PipelineService {
 
   public Mono<Object> getVideoInfo(String videoId) {
     logger.info("Getting video info: {}", videoId);
-    return Mono.fromFuture(miniMemoRepository.getItem(videoId));
+      return Mono.fromFuture(videosRepository.getItem(videoId));
   }
 
   public Mono<Object> getVideos(String userId) {
     logger.info("Getting video info: {}", userId);
-    return Mono.fromFuture(miniMemoRepository.getItems(userId));
+      return Mono.fromFuture(videosRepository.getItems(userId));
   }
 
   public Mono<String> ping() {
